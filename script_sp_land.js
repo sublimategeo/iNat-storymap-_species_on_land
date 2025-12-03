@@ -20,11 +20,11 @@ const mapCenter = maxBounds.getCenter();
 
 const map = L.map("map", {
     attributionControl: true,
-    minZoom: 13,
+    minZoom: 12,
     maxZoom: 16,
     maxBounds: maxBounds,
     maxBoundsViscosity: 0.8
-}).setView(mapCenter, 13);
+}).setView(mapCenter, 12);
 
 // ArcGIS Terrain basemap
 L.esri.tiledMapLayer({
@@ -338,3 +338,4 @@ function addTaxonControl() {
 
     control.addTo(map);
 }
+
