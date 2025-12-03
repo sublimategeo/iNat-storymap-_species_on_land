@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>iNaturalist – Species on the land</title>
+
+    <!-- Responsive / mobile-friendly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Interactive map of selected iNaturalist observations rendered with Leaflet." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .legend {
+            background: white;
+            padding: 6px 8px;
+            border-radius: 4px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            font: 12px/14px Arial, sans-serif;
+        }
+
+        .legend-title {
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 3px;
+        }
+
+        .legend-row input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid #555;
+            margin-right: 4px;
+        }
+
+        /* Small attribution/footer overlay */
+        #app-attribution {
+            position: absolute;
+            bottom: 4px;
+            left: 4px;
+            z-index: 1000;
+            font-family: "Inter", sans-serif;
+            font-size: 10px;
+            background: rgba(255, 255, 255, 0.85);
+            padding: 3px 6px;
+            border-radius: 4px;
+            line-height: 1.3;
+            letter-spacing: 0.2px;
+        }
+    </style>
+
+    <!-- Leaflet stylesheet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+
+<body>
+    <!-- Main map container -->
+    <div id="map" aria-label="Map showing selected iNaturalist observations"></div>
+
+    <!-- Visible attribution & provenance (important for open data / reproducibility) -->
+    <div id="app-attribution">
+        iNaturalist data © individual contributors, some rights reserved; data via iNaturalist API.
+        Basemap © Esri and contributors.
+        App created with assistance from ChatGPT (OpenAI).
+    </div>
+
+    <!-- Leaflet core -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Esri Leaflet -->
+    <script src="https://unpkg.com/esri-leaflet@3.0.8/dist/esri-leaflet.js"></script>
+
+    <!-- Leaflet.Pattern plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/leaflet.pattern@0.1.0/dist/leaflet.pattern.js"></script>
+
+    <!-- Your app code (uses WGS84 / EPSG:4326 coordinates & iNaturalist JSON API) -->
+    <script src="script_sp_land.js"></script>
+</body>
+
+</html>
