@@ -2,14 +2,16 @@
 // 1. AOI & map setup
 // -------------------------
 
+// --- AOI extent in EPSG:4326 (original box) ---
 const swLon = -123.23407668799925;
 const swLat = 49.53559929341239;
 const neLon = -123.06988635889327;
 const neLat = 49.61080514852734;
 
-// --- 5 km buffer around the original box ---
-const bufferLat = 0.045045;  // 5 km / 111 km per degree
-const bufferLon = 0.06926;   // 5 km / (111.32 km * cos(lat))
+// --- 7.5 km vertical buffer, 5 km horizontal buffer ---
+// ~0.0676° latitude and ~0.069° longitude at this latitude (~49.6°N)
+const bufferLat = 7.5 / 111;   // 7.5 km / 111 km per degree ≈ 0.0676
+const bufferLon = 0.06926;     // keep 5 km east/west as before
 
 const maxBounds = L.latLngBounds(
     [swLat - bufferLat, swLon - bufferLon],
