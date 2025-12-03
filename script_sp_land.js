@@ -20,7 +20,7 @@ const mapCenter = maxBounds.getCenter();
 
 const map = L.map("map", {
     attributionControl: true,
-    minZoom: 12,
+    minZoom: 11,
     maxZoom: 16,
     maxBounds: maxBounds,
     maxBoundsViscosity: 0.8
@@ -46,7 +46,7 @@ hatchedPattern.addTo(map);
 
 L.esri.featureLayer({
     url: "https://services7.arcgis.com/MNgXxsTORgPk9EjE/arcgis/rest/services/storymap_boundary/FeatureServer/0",
-    style: function (feature) {
+    style: function () {
         return {
             color: "#6a0dad",
             weight: 3,
@@ -141,6 +141,14 @@ const baseInatParams = {
 
 let allObservations = [];
 
+// Let viewers know that the data is loading to the app
+function hideLoadingOverlay() {
+    const overlay = document.getElementById("loading-overlay");
+    if (!overlay) return;
+    // Use CSS class for fade-out + disable interaction
+    overlay.classList.add("is-hidden");
+}
+
 function fetchInatPage(page = 1) {
     const url = new URL("https://api.inaturalist.org/v1/observations");
 
@@ -168,12 +176,15 @@ function fetchInatPage(page = 1) {
                 return fetchInatPage(page + 1);
             } else {
                 addObservationsToMap(allObservations);
+                hideLoadingOverlay(); // all data loaded
             }
         })
         .catch(err => {
             console.error("Error fetching iNaturalist data:", err);
             alert("Failed to load iNaturalist observations.");
+            hideLoadingOverlay();
         });
+
 }
 
 fetchInatPage(1);
@@ -242,16 +253,14 @@ function addObservationsToMap(observations) {
             if (imgUrl) {
                 photoHtml = `
           <br/>
-          <img src="${imgUrl}"
-               alt="${commonName}"
-               style="max-width:180px;max-height:130px;display:block;margin-top:4px;border-radius:4px;">
+          <img src="${imgUrl}" alt="${commonName}">
         `;
             }
         }
 
         marker.bindPopup(`
-      <strong>${commonName}</strong><br/>
-      <em>${sciName}</em><br/>
+      <strong>${commonName}</strong>
+      <em>${sciName}</em>
       Iconic taxon: ${iconic}<br/>
       Observed: ${obsDate}<br/>
       <a href="${obsUrl}" target="_blank" rel="noopener">View on iNaturalist</a>
@@ -278,8 +287,6 @@ function addObservationsToMap(observations) {
         taxonControlAdded = true;
     }
 }
-
-
 
 // -------------------------
 // 5. Legend / filter control
@@ -338,4 +345,3 @@ function addTaxonControl() {
 
     control.addTo(map);
 }
-
