@@ -7,18 +7,14 @@ const swLat = 49.53559929341239;
 const neLon = -123.06988635889327;
 const neLat = 49.61080514852734;
 
-// Map center
 const MAP_CENTER = [49.58187, -123.13351];
 const MAP_ZOOM = 11;
 
-// Panning buffer
 const bufferLat = 7.5 / 111;
 const bufferLon = 0.06926;
 
-// True AOI bounds (for iNat fetch + bbox filtering)
 const aoiBounds = L.latLngBounds([swLat, swLon], [neLat, neLon]);
 
-// Buffered bounds (for panning)
 const maxBounds = L.latLngBounds(
   [swLat - bufferLat, swLon - bufferLon],
   [neLat + bufferLat, neLon + bufferLon]
@@ -39,7 +35,7 @@ L.esri.tiledMapLayer({
   attribution: "Esri, HERE, Garmin, FAO, NOAA, NGA, USGS"
 }).addTo(map);
 
-// AOI polygon from FeatureServer (for true boundary filter)
+// AOI polygon geometry from FeatureServer
 let aoiGeoJSON = null;
 
 const hatchedPattern = new L.StripePattern({
@@ -72,30 +68,29 @@ const PANEL_GAP = 12;
 
 function positionLegendBelowGallery() {
   const gallery = document.getElementById("gallery-panel");
-  const legend = document.querySelector(".taxa-legend-control");
-  if (!gallery || !legend) return;
+  const legendControl = document.querySelector(".taxa-legend-control");
+  if (!gallery || !legendControl) return;
 
-  // Mobile: let CSS stack it; don't force positions
+  // Mobile: let CSS handle stacking (bottom-right)
   if (window.matchMedia("(max-width: 680px)").matches) {
-    legend.style.position = "";
-    legend.style.top = "";
-    legend.style.right = "";
-    legend.style.left = "";
-    legend.style.bottom = "";
+    legendControl.style.position = "";
+    legendControl.style.top = "";
+    legendControl.style.right = "";
+    legendControl.style.left = "";
+    legendControl.style.bottom = "";
     return;
   }
 
   const rect = gallery.getBoundingClientRect();
-  const top = rect.bottom + 12;
+  const top = rect.bottom + PANEL_GAP;
 
-  legend.style.position = "fixed";
-  legend.style.top = `${top}px`;
-  legend.style.right = "12px";
-  legend.style.left = "auto";
-  legend.style.bottom = "auto";
-  legend.style.zIndex = 1200;
+  legendControl.style.position = "fixed";
+  legendControl.style.top = `${top}px`;
+  legendControl.style.right = `${PANEL_RIGHT}px`;
+  legendControl.style.left = "auto";
+  legendControl.style.bottom = "auto";
+  legendControl.style.zIndex = 1200;
 }
-
 
 window.addEventListener("load", positionLegendBelowGallery);
 window.addEventListener("resize", positionLegendBelowGallery);
@@ -108,13 +103,13 @@ map.on("moveend", positionLegendBelowGallery);
 const allowedIconicTaxa = ["Aves", "Mollusca", "Mammalia", "Insecta", "Arachnida", "Amphibia", "Reptilia"];
 
 const taxaColors = {
-  Amphibia: '#C87A8A',
-  Reptilia: '#B28955',
-  Mammalia: '#82994C',
-  Arachnida: '#30A37C',
-  Aves: '#00A0AE',
-  Insecta: '#7E8FC7',
-  Mollusca: '#BA7BB8',
+  Amphibia: "#C87A8A",
+  Reptilia: "#B28955",
+  Mammalia: "#82994C",
+  Arachnida: "#30A37C",
+  Aves: "#00A0AE",
+  Insecta: "#7E8FC7",
+  Mollusca: "#BA7BB8",
   Other: "#666666"
 };
 
@@ -189,7 +184,7 @@ async function loadAllObservations() {
 }
 
 // -------------------------
-// 3b. Point-in-polygon helpers (GeoJSON Polygon/MultiPolygon)
+// 3b. Point-in-polygon helpers
 // -------------------------
 
 function pointInRing(pt, ring) {
@@ -264,7 +259,7 @@ function addObservationsToMap(observations) {
 
     if (lat == null || lon == null || Number.isNaN(lat) || Number.isNaN(lon)) return;
 
-    // BBox + true polygon boundary filter
+    // bbox + true boundary filter
     if (!aoiBounds.contains([lat, lon])) return;
     if (aoiGeoJSON && !pointInPolygonGeoJSON(lon, lat, aoiGeoJSON)) return;
 
@@ -290,7 +285,8 @@ function addObservationsToMap(observations) {
       let imgUrl = photo.medium_url || photo.url || photo.small_url || "";
       if (imgUrl.includes("square")) imgUrl = imgUrl.replace("square", "medium");
 
-      const photoAttribution = photo.attribution || photo.native_realname || photo.native_username || "";
+      const photoAttribution =
+        photo.attribution || photo.native_realname || photo.native_username || "";
 
       if (imgUrl) {
         photoHtml = `
@@ -323,7 +319,7 @@ function addObservationsToMap(observations) {
 }
 
 // -------------------------
-// 5. Legend / filter control
+// 5. Legend control
 // -------------------------
 
 function addTaxonControl() {
@@ -331,59 +327,55 @@ function addTaxonControl() {
 
   control.onAdd = function () {
     const div = L.DomUtil.create("div", "legend");
+
+    const title = document.createElement("div");
+    title.className = "legend-title";
+    title.textContent = "Iconic taxa";
+    div.appendChild(title);
+
+    const wrap = document.createElement("div");
+    wrap.className = "legend-grid";
+    div.appendChild(wrap);
+
+    allowedIconicTaxa.forEach(name => {
+      const row = document.createElement("label");
+      row.className = "legend-row";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.checked = true;
+      checkbox.dataset.taxon = name;
+
+      const dot = document.createElement("span");
+      dot.className = "legend-dot";
+      dot.style.backgroundColor = getTaxonColor(name);
+
+      const text = document.createElement("span");
+      text.className = "legend-text";
+      text.textContent = name;
+
+      checkbox.addEventListener("change", function () {
+        const layer = taxonLayers[this.dataset.taxon];
+        if (!layer) return;
+
+        this.checked ? map.addLayer(layer) : map.removeLayer(layer);
+        shuffleVisibleGallery();
+        setTimeout(positionLegendBelowGallery, 0);
+      });
+
+      row.appendChild(checkbox);
+      row.appendChild(dot);
+      row.appendChild(text);
+      wrap.appendChild(row);
+    });
+
+    L.DomEvent.disableClickPropagation(div);
     return div;
   };
 
+  // IMPORTANT: add to map FIRST, then container exists
   control.addTo(map);
   control.getContainer().classList.add("taxa-legend-control");
-
-
-  const title = document.createElement("div");
-  title.className = "legend-title";
-  title.textContent = "Iconic taxa";
-  div.appendChild(title);
-
-  const wrap = document.createElement("div");
-  wrap.className = "legend-grid";
-  div.appendChild(wrap);
-
-  allowedIconicTaxa.forEach(name => {
-    const row = document.createElement("label");
-    row.className = "legend-row";
-
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.checked = true;
-    checkbox.dataset.taxon = name;
-
-    const dot = document.createElement("span");
-    dot.className = "legend-dot";
-    dot.style.backgroundColor = getTaxonColor(name);
-
-    const text = document.createElement("span");
-    text.className = "legend-text";
-    text.textContent = name;
-
-    checkbox.addEventListener("change", function () {
-      const layer = taxonLayers[this.dataset.taxon];
-      if (!layer) return;
-
-      this.checked ? map.addLayer(layer) : map.removeLayer(layer);
-      shuffleVisibleGallery();
-      setTimeout(positionLegendBelowGallery, 0);
-    });
-
-    row.appendChild(checkbox);
-    row.appendChild(dot);
-    row.appendChild(text);
-    wrap.appendChild(row);
-  });
-
-  L.DomEvent.disableClickPropagation(div);
-  return div;
-};
-
-control.addTo(map);
 }
 
 // -------------------------
@@ -483,7 +475,7 @@ function shuffleVisibleGallery() {
   const shuffled = sampleArray(visible, visible.length);
   const groups = groupByTaxon(shuffled);
 
-  // Pick at least one per taxon (when available), then fill to 8
+  // at least one per taxon (when available), then fill to 8
   const picks = [];
   for (const name of allowedIconicTaxa) {
     const arr = groups.get(name);
@@ -543,12 +535,7 @@ boundaryLayer.query()
     const feat = fc?.features?.[0];
     aoiGeoJSON = feat?.geometry || null;
 
-    if (!aoiGeoJSON) {
-      console.warn("AOI geometry missing; falling back to bbox-only filter.");
-    }
+    if (!aoiGeoJSON) console.warn("AOI geometry missing; falling back to bbox-only filter.");
 
     loadAllObservations();
   });
-
-
-
