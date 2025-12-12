@@ -7,16 +7,18 @@ const swLat = 49.53559929341239;
 const neLon = -123.06988635889327;
 const neLat = 49.61080514852734;
 
+// Map center (requested)
+const MAP_CENTER = [49.57939, -123.19933];
+const MAP_ZOOM = 13;
+
+// Panning buffer
 const bufferLat = 7.5 / 111;
 const bufferLon = 0.06926;
 
-// aoi for iNat
-const aoiBounds = L.latLngBounds(
-  [swLat, swLon],
-  [neLat, neLon]
-);
+// True AOI bounds (for iNat fetch + bbox filtering)
+const aoiBounds = L.latLngBounds([swLat, swLon], [neLat, neLon]);
 
-
+// Buffered bounds (for panning)
 const maxBounds = L.latLngBounds(
   [swLat - bufferLat, swLon - bufferLon],
   [neLat + bufferLat, neLon + bufferLon]
@@ -28,18 +30,17 @@ const map = L.map("map", {
   maxZoom: 16,
   maxBounds,
   maxBoundsViscosity: 0.8
-}).setView(maxBounds.getCenter(), 13);
+}).setView(MAP_CENTER, MAP_ZOOM);
 
-window.addEventListener("load", () => {
-  setTimeout(() => map.invalidateSize(), 0);
-});
+window.addEventListener("load", () => setTimeout(() => map.invalidateSize(), 0));
 
 L.esri.tiledMapLayer({
   url: "https://services.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer",
   attribution: "Esri, HERE, Garmin, FAO, NOAA, NGA, USGS"
 }).addTo(map);
 
-let aoiGeoJSON = null; // will hold polygon geometry for true AOI boundary
+// AOI polygon from FeatureServer (for true boundary filter)
+let aoiGeoJSON = null;
 
 const hatchedPattern = new L.StripePattern({
   patternContentUnits: "objectBoundingBox",
@@ -62,24 +63,42 @@ const boundaryLayer = L.esri.featureLayer({
   })
 }).addTo(map);
 
-// Fetch boundary geometry (first feature) then load iNat
-boundaryLayer.query()
-  .where("1=1")
-  .returnGeometry(true)
-  .run((err, fc) => {
-    if (err) {
-      console.warn("Failed to read AOI boundary geometry; falling back to bbox-only filter.", err);
-      loadAllObservations(); // fallback
-      return;
-    }
-    const feat = fc?.features?.[0];
-    aoiGeoJSON = feat?.geometry || null;
+// -------------------------
+// 1b. Legend positioning (desktop only)
+// -------------------------
 
-    if (!aoiGeoJSON) {
-      console.warn("AOI geometry missing; falling back to bbox-only filter.");
-    }
-    loadAllObservations();
-  });
+const PANEL_RIGHT = 12; // must match CSS --panel-right
+const PANEL_GAP = 12;
+
+function positionLegendBelowGallery() {
+  const gallery = document.getElementById("gallery-panel");
+  const legendControl = document.querySelector(".leaflet-bottom.leaflet-right");
+  if (!gallery || !legendControl) return;
+
+  // Mobile: CSS handles stacking
+  if (window.matchMedia("(max-width: 680px)").matches) {
+    legendControl.style.top = "";
+    legendControl.style.bottom = "";
+    legendControl.style.right = "";
+    legendControl.style.left = "";
+    legendControl.style.position = "";
+    return;
+  }
+
+  const rect = gallery.getBoundingClientRect();
+  const top = rect.bottom + PANEL_GAP;
+
+  legendControl.style.position = "fixed";
+  legendControl.style.top = `${top}px`;
+  legendControl.style.bottom = "auto";
+  legendControl.style.right = `${PANEL_RIGHT}px`; // ensures same right edge as gallery
+  legendControl.style.left = "auto";
+  legendControl.style.zIndex = 1200;
+}
+
+window.addEventListener("load", positionLegendBelowGallery);
+window.addEventListener("resize", positionLegendBelowGallery);
+map.on("moveend", positionLegendBelowGallery);
 
 // -------------------------
 // 2. Taxon styling & layers
@@ -88,13 +107,13 @@ boundaryLayer.query()
 const allowedIconicTaxa = ["Aves", "Mollusca", "Mammalia", "Insecta", "Arachnida", "Amphibia", "Reptilia"];
 
 const taxaColors = {
-  Mammalia: "#117733",
-  Aves: "#332288",
-  Amphibia: "#DDCC77",
-  Reptilia: "#CC6677",
-  Insecta: "#AA4499",
-  Arachnida: "#882255",
-  Mollusca: "#44AA99",
+  Amphibia: '#C87A8A',
+  Reptilia: '#B28955',
+  Mammalia: '#82994C',
+  Arachnida: '#30A37C',
+  Aves: '#00A0AE',
+  Insecta: '#7E8FC7',
+  Mollusca: '#BA7BB8',
   Other: "#666666"
 };
 
@@ -109,12 +128,10 @@ function getOrCreateTaxonLayer(iconicName) {
   return taxonLayers[key];
 }
 
-
 // -------------------------
 // 3. iNat fetch (all pages)
 // -------------------------
 
-// Use buffered bounds for fetch (matches what user can pan to)
 const sw = aoiBounds.getSouthWest();
 const ne = aoiBounds.getNorthEast();
 
@@ -145,8 +162,6 @@ async function fetchInatPage(page = 1) {
   Object.entries(baseInatParams).forEach(([k, v]) => url.searchParams.set(k, v));
   url.searchParams.set("page", page);
 
-  console.log("Fetching iNat page", page, url.toString());
-
   const response = await fetch(url.toString());
   if (!response.ok) throw new Error(`iNat request failed: ${response.status} ${response.statusText}`);
 
@@ -156,7 +171,6 @@ async function fetchInatPage(page = 1) {
 
   const total = data.total_results || 0;
   const perPage = data.per_page || baseInatParams.per_page;
-
   if (page * perPage < total) return fetchInatPage(page + 1);
 }
 
@@ -173,10 +187,61 @@ async function loadAllObservations() {
   }
 }
 
+// -------------------------
+// 3b. Point-in-polygon helpers (GeoJSON Polygon/MultiPolygon)
+// -------------------------
+
+function pointInRing(pt, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect =
+      ((yi > pt[1]) !== (yj > pt[1])) &&
+      (pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi + 0.0) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function pointInPolygonGeoJSON(lon, lat, geom) {
+  if (!geom) return true;
+
+  const pt = [lon, lat];
+
+  if (geom.type === "Polygon") {
+    const rings = geom.coordinates || [];
+    if (!rings[0]) return false;
+    if (!pointInRing(pt, rings[0])) return false;
+    for (let h = 1; h < rings.length; h++) {
+      if (pointInRing(pt, rings[h])) return false;
+    }
+    return true;
+  }
+
+  if (geom.type === "MultiPolygon") {
+    const polys = geom.coordinates || [];
+    for (const rings of polys) {
+      if (!rings?.[0]) continue;
+      if (!pointInRing(pt, rings[0])) continue;
+
+      let inHole = false;
+      for (let h = 1; h < rings.length; h++) {
+        if (pointInRing(pt, rings[h])) { inHole = true; break; }
+      }
+      if (!inHole) return true;
+    }
+    return false;
+  }
+
+  return true;
+}
 
 // -------------------------
 // 4. Add observations to map
 // -------------------------
+
+let taxonControlAdded = false;
 
 function addObservationsToMap(observations) {
   observations.forEach(obs => {
@@ -197,6 +262,10 @@ function addObservationsToMap(observations) {
     }
 
     if (lat == null || lon == null || Number.isNaN(lat) || Number.isNaN(lon)) return;
+
+    // BBox + true polygon boundary filter
+    if (!aoiBounds.contains([lat, lon])) return;
+    if (aoiGeoJSON && !pointInPolygonGeoJSON(lon, lat, aoiGeoJSON)) return;
 
     const layer = getOrCreateTaxonLayer(iconic);
     const color = getTaxonColor(iconic);
@@ -220,8 +289,7 @@ function addObservationsToMap(observations) {
       let imgUrl = photo.medium_url || photo.url || photo.small_url || "";
       if (imgUrl.includes("square")) imgUrl = imgUrl.replace("square", "medium");
 
-      const photoAttribution =
-        photo.attribution || photo.native_realname || photo.native_username || "";
+      const photoAttribution = photo.attribution || photo.native_realname || photo.native_username || "";
 
       if (imgUrl) {
         photoHtml = `
@@ -249,15 +317,13 @@ function addObservationsToMap(observations) {
   if (!taxonControlAdded) {
     addTaxonControl();
     taxonControlAdded = true;
+    setTimeout(positionLegendBelowGallery, 0);
   }
 }
-
 
 // -------------------------
 // 5. Legend / filter control
 // -------------------------
-
-let taxonControlAdded = false;
 
 function addTaxonControl() {
   const control = L.control({ position: "bottomright" });
@@ -270,7 +336,6 @@ function addTaxonControl() {
     title.textContent = "Iconic taxa";
     div.appendChild(title);
 
-    // two-row layout wrapper
     const wrap = document.createElement("div");
     wrap.className = "legend-grid";
     div.appendChild(wrap);
@@ -298,6 +363,7 @@ function addTaxonControl() {
 
         this.checked ? map.addLayer(layer) : map.removeLayer(layer);
         shuffleVisibleGallery();
+        setTimeout(positionLegendBelowGallery, 0);
       });
 
       row.appendChild(checkbox);
@@ -313,19 +379,26 @@ function addTaxonControl() {
   control.addTo(map);
 }
 
-
 // -------------------------
 // 6. Random visible gallery
 // -------------------------
 
 function getVisibleMarkers() {
   const bounds = map.getBounds();
-
   return markerIndex.filter(m => {
     const iconic = m.obs?.taxon?.iconic_taxon_name || "Other";
     const layer = taxonLayers[iconic];
     return bounds.contains([m.lat, m.lon]) && layer && map.hasLayer(layer);
   });
+}
+
+function sampleArray(arr, n) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, Math.min(n, a.length));
 }
 
 function groupByTaxon(items) {
@@ -336,15 +409,6 @@ function groupByTaxon(items) {
     groups.get(iconic).push(item);
   });
   return groups;
-}
-
-function sampleArray(arr, n) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a.slice(0, Math.min(n, a.length));
 }
 
 function getObsThumbUrl(obs) {
@@ -409,12 +473,10 @@ function shuffleVisibleGallery() {
     return;
   }
 
-  // shuffle a copy
   const shuffled = sampleArray(visible, visible.length);
-
   const groups = groupByTaxon(shuffled);
 
-  // Step 1: pick at least one from each taxon (if possible)
+  // Pick at least one per taxon (when available), then fill to 8
   const picks = [];
   for (const name of allowedIconicTaxa) {
     const arr = groups.get(name);
@@ -422,26 +484,61 @@ function shuffleVisibleGallery() {
     if (picks.length === 8) break;
   }
 
-  // Step 2: fill remaining slots from everything else, randomly
   if (picks.length < 8) {
     const remainingPool = [];
     for (const arr of groups.values()) remainingPool.push(...arr);
-    const fill = sampleArray(remainingPool, 8 - picks.length);
-    picks.push(...fill);
+    picks.push(...sampleArray(remainingPool, 8 - picks.length));
   }
 
   renderGallery(picks.slice(0, 8));
 }
 
-
-
 // -------------------------
-// 7. Wire up UI events
+// 7. UI events
 // -------------------------
 
-document.getElementById("shuffle-btn")?.addEventListener("click", shuffleVisibleGallery);
+function wireUI() {
+  const galleryPanel = document.getElementById("gallery-panel");
 
-map.on("moveend", () => {
-  if (markerIndex.length === 0) return;
-  shuffleVisibleGallery();
-});
+  document.getElementById("shuffle-btn")?.addEventListener("click", () => {
+    shuffleVisibleGallery();
+    setTimeout(positionLegendBelowGallery, 0);
+  });
+
+  document.getElementById("minimize-btn")?.addEventListener("click", () => {
+    if (!galleryPanel) return;
+    galleryPanel.classList.toggle("is-collapsed");
+    setTimeout(positionLegendBelowGallery, 0);
+  });
+
+  map.on("moveend", () => {
+    if (markerIndex.length === 0) return;
+    shuffleVisibleGallery();
+  });
+}
+
+wireUI();
+
+// -------------------------
+// 8. Kick off: fetch boundary, then iNat
+// -------------------------
+
+boundaryLayer.query()
+  .where("1=1")
+  .returnGeometry(true)
+  .run((err, fc) => {
+    if (err) {
+      console.warn("Failed to read AOI boundary geometry; falling back to bbox-only filter.", err);
+      loadAllObservations();
+      return;
+    }
+
+    const feat = fc?.features?.[0];
+    aoiGeoJSON = feat?.geometry || null;
+
+    if (!aoiGeoJSON) {
+      console.warn("AOI geometry missing; falling back to bbox-only filter.");
+    }
+
+    loadAllObservations();
+  });

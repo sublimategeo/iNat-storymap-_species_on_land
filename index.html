@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <title>iNaturalist – Species on the land</title>
@@ -25,12 +26,18 @@
   </div>
 
   <div id="gallery-panel" class="gallery-panel" aria-label="Random observations panel">
-    <div class="gallery-header">
-      <div class="gallery-title">Random 10 (visible)</div>
-      <button id="shuffle-btn" class="gallery-btn" type="button">Shuffle</button>
+  <div class="gallery-header">
+    <div class="gallery-left">
+      <button id="shuffle-btn" class="gallery-icon-btn" type="button" aria-label="Refresh gallery" title="Refresh">↻</button>
+      <div class="gallery-title">Random 8 (visible)</div>
     </div>
-    <div id="gallery-grid" class="gallery-grid"></div>
+
+    <button id="minimize-btn" class="gallery-icon-btn" type="button" aria-label="Minimize gallery" title="Minimize">−</button>
   </div>
+
+  <div id="gallery-grid" class="gallery-grid"></div>
+</div>
+
 
   <div id="app-attribution">
     iNaturalist data © individual contributors, some rights reserved; data via iNaturalist API.
@@ -42,4 +49,5 @@
   <script src="https://cdn.jsdelivr.net/npm/leaflet.pattern@0.1.0/dist/leaflet.pattern.js"></script>
   <script src="script_sp_land.js"></script>
 </body>
+
 </html>
