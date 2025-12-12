@@ -8,7 +8,7 @@ const neLon = -123.06988635889327;
 const neLat = 49.61080514852734;
 
 // Map center
-const MAP_CENTER = [49.58187,-123.13351];
+const MAP_CENTER = [49.58187, -123.13351];
 const MAP_ZOOM = 11;
 
 // Panning buffer
@@ -72,29 +72,30 @@ const PANEL_GAP = 12;
 
 function positionLegendBelowGallery() {
   const gallery = document.getElementById("gallery-panel");
-  const legendControl = document.querySelector(".leaflet-bottom.leaflet-right");
-  if (!gallery || !legendControl) return;
+  const legend = document.querySelector(".taxa-legend-control");
+  if (!gallery || !legend) return;
 
-  // Mobile: CSS handles stacking
+  // Mobile: let CSS stack it; don't force positions
   if (window.matchMedia("(max-width: 680px)").matches) {
-    legendControl.style.top = "";
-    legendControl.style.bottom = "";
-    legendControl.style.right = "";
-    legendControl.style.left = "";
-    legendControl.style.position = "";
+    legend.style.position = "";
+    legend.style.top = "";
+    legend.style.right = "";
+    legend.style.left = "";
+    legend.style.bottom = "";
     return;
   }
 
   const rect = gallery.getBoundingClientRect();
-  const top = rect.bottom + PANEL_GAP;
+  const top = rect.bottom + 12;
 
-  legendControl.style.position = "fixed";
-  legendControl.style.top = `${top}px`;
-  legendControl.style.bottom = "auto";
-  legendControl.style.right = `${PANEL_RIGHT}px`; // ensures same right edge as gallery
-  legendControl.style.left = "auto";
-  legendControl.style.zIndex = 1200;
+  legend.style.position = "fixed";
+  legend.style.top = `${top}px`;
+  legend.style.right = "12px";
+  legend.style.left = "auto";
+  legend.style.bottom = "auto";
+  legend.style.zIndex = 1200;
 }
+
 
 window.addEventListener("load", positionLegendBelowGallery);
 window.addEventListener("resize", positionLegendBelowGallery);
@@ -330,53 +331,59 @@ function addTaxonControl() {
 
   control.onAdd = function () {
     const div = L.DomUtil.create("div", "legend");
-
-    const title = document.createElement("div");
-    title.className = "legend-title";
-    title.textContent = "Iconic taxa";
-    div.appendChild(title);
-
-    const wrap = document.createElement("div");
-    wrap.className = "legend-grid";
-    div.appendChild(wrap);
-
-    allowedIconicTaxa.forEach(name => {
-      const row = document.createElement("label");
-      row.className = "legend-row";
-
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.checked = true;
-      checkbox.dataset.taxon = name;
-
-      const dot = document.createElement("span");
-      dot.className = "legend-dot";
-      dot.style.backgroundColor = getTaxonColor(name);
-
-      const text = document.createElement("span");
-      text.className = "legend-text";
-      text.textContent = name;
-
-      checkbox.addEventListener("change", function () {
-        const layer = taxonLayers[this.dataset.taxon];
-        if (!layer) return;
-
-        this.checked ? map.addLayer(layer) : map.removeLayer(layer);
-        shuffleVisibleGallery();
-        setTimeout(positionLegendBelowGallery, 0);
-      });
-
-      row.appendChild(checkbox);
-      row.appendChild(dot);
-      row.appendChild(text);
-      wrap.appendChild(row);
-    });
-
-    L.DomEvent.disableClickPropagation(div);
     return div;
   };
 
   control.addTo(map);
+  control.getContainer().classList.add("taxa-legend-control");
+
+
+  const title = document.createElement("div");
+  title.className = "legend-title";
+  title.textContent = "Iconic taxa";
+  div.appendChild(title);
+
+  const wrap = document.createElement("div");
+  wrap.className = "legend-grid";
+  div.appendChild(wrap);
+
+  allowedIconicTaxa.forEach(name => {
+    const row = document.createElement("label");
+    row.className = "legend-row";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.checked = true;
+    checkbox.dataset.taxon = name;
+
+    const dot = document.createElement("span");
+    dot.className = "legend-dot";
+    dot.style.backgroundColor = getTaxonColor(name);
+
+    const text = document.createElement("span");
+    text.className = "legend-text";
+    text.textContent = name;
+
+    checkbox.addEventListener("change", function () {
+      const layer = taxonLayers[this.dataset.taxon];
+      if (!layer) return;
+
+      this.checked ? map.addLayer(layer) : map.removeLayer(layer);
+      shuffleVisibleGallery();
+      setTimeout(positionLegendBelowGallery, 0);
+    });
+
+    row.appendChild(checkbox);
+    row.appendChild(dot);
+    row.appendChild(text);
+    wrap.appendChild(row);
+  });
+
+  L.DomEvent.disableClickPropagation(div);
+  return div;
+};
+
+control.addTo(map);
 }
 
 // -------------------------
@@ -542,5 +549,6 @@ boundaryLayer.query()
 
     loadAllObservations();
   });
+
 
 
