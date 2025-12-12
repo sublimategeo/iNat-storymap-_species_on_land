@@ -27,13 +27,25 @@ body {
    Custom legend
 -------------------------------- */
 .legend {
-    background: #ffffff;
+    background: rgba(255,255,255,var(--panel-bg-alpha));
     padding: 8px 10px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
     font-size: 13px;
     line-height: 1.3;
 }
+
+.legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* 2 columns */
+    gap: 6px 10px;
+}
+
+.legend-text {
+    white-space: nowrap;
+}
+
 
 .legend-title {
     font-weight: 600;
@@ -43,8 +55,9 @@ body {
 .legend-row {
     display: flex;
     align-items: center;
-    margin-bottom: 4px;
-    gap: 4px;
+    gap: 6px;
+    font-size: 12px;
+    user-select: none;
 }
 
 .legend-row input[type="checkbox"] {
@@ -59,9 +72,17 @@ body {
     border: 1px solid #555;
 }
 
+.legend-text {
+    white-space: nowrap;
+}
+
 /* ------------------------------
    Popup styling
 -------------------------------- */
+.leaflet-popup-content {
+    max-width: 280px;
+}
+
 .leaflet-popup-content-wrapper {
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -104,6 +125,29 @@ body {
     height: auto;
     border-radius: 4px;
 }
+
+/* Consistent popup photo sizing */
+/* Popup photo sizing */
+.popup-photo-wrap {
+    margin-top: 8px;
+}
+
+.popup-photo {
+    display: block;
+    max-width: 100%; /* <-- change popup image max width here */
+    max-height: 90px; /* <-- change popup image max height here */
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.popup-photo-attrib {
+    font-size: 0.7rem;
+    color: #666;
+    margin-top: 3px;
+}
+
 
 /* ------------------------------
    Loading overlay
@@ -179,6 +223,102 @@ body {
 }
 
 /* ------------------------------
+   Random 8 gallery panel
+-------------------------------- */
+.gallery-panel {
+    position: fixed;
+    right: 12px;
+    top: 12px;
+    z-index: 1200;
+    width: var(--panel-width);
+    max-height: var(--gallery-height);
+    overflow: hidden;
+    background: rgba(255, 255, 255, var(--panel-bg-alpha));
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    backdrop-filter: blur(6px);
+}
+
+.gallery-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px 8px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.gallery-title {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.gallery-btn {
+    border: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px;
+    overflow: auto;
+    max-height: calc(var(--gallery-height) - 44px);
+}
+
+.gallery-card {
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: #fff;
+}
+
+/* Gallery thumbs sizing */
+.gallery-thumb {
+    width: 100%;
+    height: 90px;
+    /* <-- change gallery thumbnail height here */
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+}
+
+.gallery-meta {
+    padding: 6px 8px 8px;
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.gallery-common {
+    font-weight: 700;
+    display: block;
+}
+
+.gallery-sci {
+    color: #555;
+    font-style: italic;
+    display: block;
+}
+
+/* Gallery panel width + background transparency */
+.gallery-panel {
+    width: var(--panel-width);
+    background: rgba(255, 255, 255, var(--panel-bg-alpha));
+    /* <-- transparency knob */
+}
+
+/* Legend width + background transparency */
+.leaflet-control .legend {
+    width: var(--panel-width);
+    background: rgba(255, 255, 255, var(--panel-bg-alpha));
+    /* <-- transparency knob */
+}
+
+/* ------------------------------
    App attribution / footer
 -------------------------------- */
 #app-attribution {
@@ -193,4 +333,43 @@ body {
     line-height: 1.3;
     letter-spacing: 0.2px;
     max-width: 260px;
+}
+
+
+/* ------------------------------
+Final tweaks
+-------------------------------- */
+
+:root{
+  --panel-width: 340px;
+  --panel-bg-alpha: 0.80; /* 0 (transparent) → 1 (opaque) */
+  --gallery-height: 85vh;
+}
+
+/* Make width include padding/border */
+#gallery-panel,
+.gallery-panel,
+.leaflet-control,
+.legend{
+  box-sizing: border-box;
+}
+
+/* Gallery width */
+#gallery-panel,
+.gallery-panel{
+  width: var(--panel-width) !important;
+  max-width: var(--panel-width) !important;
+}
+
+/* Leaflet control wrapper width (this is the key difference) */
+.leaflet-right .leaflet-control{
+  width: var(--panel-width) !important;
+  max-width: var(--panel-width) !important;
+}
+
+/* Legend panel width */
+.leaflet-right .leaflet-control .legend{
+  width: 100% !important;              /* fill the wrapper */
+  max-width: 100% !important;
+  background: rgba(255,255,255,var(--panel-bg-alpha)) !important; /* transparency knob */
 }

@@ -1,59 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8" />
-    <title>iNaturalist – Species on the land</title>
+  <meta charset="utf-8" />
+  <title>iNaturalist – Species on the land</title>
 
-    <!-- Responsive / mobile-friendly -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description"
-        content="Interactive map of selected iNaturalist observations rendered with Leaflet." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Interactive map of selected iNaturalist observations rendered with Leaflet." />
 
-    <!-- Google font: Open Sans -->
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap"
-        rel="stylesheet" />
-
-    <!-- Leaflet stylesheet -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- App stylesheet -->
-    <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-    <!-- Main map container -->
-    <div id="map" aria-label="Map showing selected iNaturalist observations"></div>
+  <div id="map" aria-label="Map showing selected iNaturalist observations"></div>
 
-    <!-- Loading overlay -->
-    <div id="loading-overlay" aria-live="polite">
-        <div class="loading-content">
-            <!-- Animated SVG spinner -->
-            <svg class="spinner" viewBox="0 0 50 50" role="img" aria-label="Loading">
-                <circle cx="25" cy="25" r="20"></circle>
-            </svg>
-            <div class="loading-text">Loading iNaturalist data...</div>
-        </div>
+  <div id="loading-overlay" aria-live="polite">
+    <div class="loading-content">
+      <svg class="spinner" viewBox="0 0 50 50" role="img" aria-label="Loading">
+        <circle cx="25" cy="25" r="20"></circle>
+      </svg>
+      <div class="loading-text">Loading iNaturalist data...</div>
     </div>
+  </div>
 
-    <!-- Visible attribution & provenance -->
-    <div id="app-attribution">
-        iNaturalist data © individual contributors, some rights reserved; data via iNaturalist API.
-        Basemap © Esri and contributors.
-        App created with assistance from ChatGPT (OpenAI).
+  <div id="gallery-panel" class="gallery-panel" aria-label="Random observations panel">
+    <div class="gallery-header">
+      <div class="gallery-title">Random 10 (visible)</div>
+      <button id="shuffle-btn" class="gallery-btn" type="button">Shuffle</button>
     </div>
+    <div id="gallery-grid" class="gallery-grid"></div>
+  </div>
 
-    <!-- Leaflet core -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <div id="app-attribution">
+    iNaturalist data © individual contributors, some rights reserved; data via iNaturalist API.
+    Basemap © Esri and contributors.
+  </div>
 
-    <!-- Esri Leaflet -->
-    <script src="https://unpkg.com/esri-leaflet@3.0.8/dist/esri-leaflet.js"></script>
-
-    <!-- Leaflet.Pattern plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/leaflet.pattern@0.1.0/dist/leaflet.pattern.js"></script>
-
-    <!-- Your app code (uses WGS84 / EPSG:4326 coordinates & iNaturalist JSON API) -->
-    <script src="script_sp_land.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/esri-leaflet@3.0.8/dist/esri-leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet.pattern@0.1.0/dist/leaflet.pattern.js"></script>
+  <script src="script_sp_land.js"></script>
 </body>
-
 </html>
