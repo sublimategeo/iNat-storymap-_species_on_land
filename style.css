@@ -315,6 +315,17 @@ html, body {
   max-width: 260px;
 }
 
+/* Always keep Leaflet attribution (map credits) bottom-left */
+.leaflet-control-attribution{
+  position: fixed !important;
+  left: 8px !important;
+  right: auto !important;
+  bottom: 6px !important;
+  top: auto !important;
+  z-index: 1100;
+}
+
+
 /* ------------------------------
    Mobile: stack panels to avoid overlap
 -------------------------------- */
@@ -338,3 +349,4 @@ html, body {
     position: fixed !important;
   }
   .leaflet-right .
+
