@@ -8,7 +8,7 @@ const neLon = -123.06988635889327;
 const neLat = 49.61080514852734;
 
 const MAP_CENTER = [49.58187, -123.13351];
-const MAP_ZOOM = 11;
+const MAP_ZOOM = 12;
 
 const bufferLat = 7.5 / 111;
 const bufferLon = 0.06926;
@@ -539,3 +539,4 @@ boundaryLayer.query()
 
     loadAllObservations();
   });
+
